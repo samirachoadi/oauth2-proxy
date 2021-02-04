@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -62,15 +61,6 @@ func (p *AdfsProvider) Redeem(ctx context.Context, redirectURL, code string) (s 
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
-	params.Add("grant_type", "authorization_code")
-	params.Add("code", code)
-	params.Add("client_id", p.ClientID)
-	params.Add("client_secret", clientSecret)
-	params.Add("redirect_uri", redirectURL)
-	if p.ProtectedResource != nil && p.ProtectedResource.String() != "" {
-		params.Add("resource", p.ProtectedResource.String())
-	}
 
 	var jsonResponse struct {
 		AccessToken  string `json:"access_token"`
@@ -78,6 +68,16 @@ func (p *AdfsProvider) Redeem(ctx context.Context, redirectURL, code string) (s 
 		ExpiresIn    int64  `json:"expires_in"`
 		IDToken      string `json:"id_token"`
 	}
+
+	params := url.Values{}
+	params.Add("client_id", p.ClientID)
+	params.Add("client_secret", clientSecret)
+	if p.ProtectedResource != nil && p.ProtectedResource.String() != "" {
+		params.Add("resource", p.ProtectedResource.String())
+	}
+	params.Add("grant_type", "authorization_code")
+	params.Add("code", code)
+	params.Add("redirect_uri", redirectURL)
 
 	err = requests.New(p.RedeemURL.String()).
 		WithContext(ctx).
@@ -166,15 +166,6 @@ func (p *AdfsProvider) redeemRefreshToken(ctx context.Context, s *sessions.Sessi
 	s.CreatedAt = &now
 	s.ExpiresOn = &expires
 	return
-}
-
-func makeAdfsHeader(accessToken string) http.Header {
-	return makeAuthorizationHeader(tokenTypeBearer, accessToken, nil)
-}
-
-// ValidateSession validates the AccessToken
-func (p *AdfsProvider) ValidateSession(ctx context.Context, s *sessions.SessionState) bool {
-	return validateToken(ctx, p, s.AccessToken, makeAdfsHeader(s.AccessToken))
 }
 
 func adfsClaimsFromToken(token string) (*adfsClaims, error) {
