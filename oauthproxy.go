@@ -487,6 +487,8 @@ func (p *OAuthProxy) serveHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	switch path := req.URL.Path; {
+	case p.IsMsOfficeRequest(req):
+		p.RobotsTxt(rw, req)
 	case path == p.RobotsPath:
 		p.RobotsTxt(rw, req)
 	case p.IsAllowedRequest(req):
@@ -537,6 +539,13 @@ func (p *OAuthProxy) ErrorPage(rw http.ResponseWriter, req *http.Request, code i
 func (p *OAuthProxy) IsAllowedRequest(req *http.Request) bool {
 	isPreflightRequestAllowed := p.skipAuthPreflight && req.Method == "OPTIONS"
 	return isPreflightRequestAllowed || p.isAllowedRoute(req) || p.isTrustedIP(req)
+}
+
+// IsMsOfficeRequest is used to return a 200 when the user-agent is office
+// to avoid SSO errors with links inside MSOffice documents
+func (p *OAuthProxy) IsMsOfficeRequest(req *http.Request) bool {
+	r, _ := regexp.Compile("Word|OneNote|OutLook|Visio|Excel|PowerPoint|ms-office")
+	return r.MatchString(req.UserAgent())
 }
 
 // IsAllowedRoute is used to check if the request method & path is allowed without auth
