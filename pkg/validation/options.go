@@ -361,6 +361,17 @@ func parseJwtIssuers(issuers []string, msgs []string) ([]jwtIssuer, []string) {
 		}
 		uri, audience := components[0], strings.Join(components[1:], "=")
 		parsedIssuers = append(parsedIssuers, jwtIssuer{issuerURI: uri, audience: audience})
+		if len(components) > 3 {
+			msgs = append(msgs, fmt.Sprintf("invalid jwt verifier uri=jwksURI=audience spec: %s", jwtVerifier))
+			continue
+		}
+		if len(components) == 2 {
+			issuerURI, audience := components[0], strings.Join(components[1:], "=")
+			parsedIssuers = append(parsedIssuers, jwtIssuer{issuerURI: issuerURI, audience: audience})
+		} else if len(components) == 3 {
+			issuerURI, jwksURI, audience := components[0], components[1], strings.Join(components[2:], "=")
+			parsedIssuers = append(parsedIssuers, jwtIssuer{issuerURI: issuerURI, jwksURI: jwksURI, audience: audience})
+		}
 	}
 	return parsedIssuers, msgs
 }
@@ -391,6 +402,7 @@ func newVerifierFromJwtIssuer(jwtIssuer jwtIssuer) (*oidc.IDTokenVerifier, error
 // jwtIssuer hold parsed JWT issuer info that's used to construct a verifier.
 type jwtIssuer struct {
 	issuerURI string
+	jwksURI   string
 	audience  string
 }
 
