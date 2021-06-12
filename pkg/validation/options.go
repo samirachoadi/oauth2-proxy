@@ -387,7 +387,10 @@ func newVerifierFromJwtIssuer(jwtIssuer jwtIssuer) (*oidc.IDTokenVerifier, error
 	provider, err := oidc.NewProvider(context.Background(), jwtIssuer.issuerURI)
 	if err != nil {
 		// Try as JWKS URI
-		jwksURI := strings.TrimSuffix(jwtIssuer.issuerURI, "/") + "/.well-known/jwks.json"
+		jwksURI := jwtIssuer.jwksURI
+		if jwksURI == "" {
+			jwksURI = strings.TrimSuffix(jwtIssuer.issuerURI, "/") + "/.well-known/jwks.json"
+		}
 		if err := requests.New(jwksURI).Do().Error(); err != nil {
 			return nil, err
 		}
